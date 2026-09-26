@@ -26,6 +26,7 @@ const api = {
   openImage: (file: string): Promise<{ ok: boolean; message?: string }> =>
     ipcRenderer.invoke(IPC.openImage, file),
   pickDirectory: (): Promise<string | null> => ipcRenderer.invoke(IPC.pickDirectory),
+  pickImage: (): Promise<string | null> => ipcRenderer.invoke(IPC.pickImage),
   onProgress: (cb: (p: GenerationProgress) => void): (() => void) => {
     const listener = (_e: IpcRendererEvent, p: GenerationProgress): void => cb(p)
     ipcRenderer.on(IPC.progress, listener)

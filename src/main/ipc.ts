@@ -108,6 +108,17 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
     return result.filePaths[0]
   })
 
+  ipcMain.handle(IPC.pickImage, async (): Promise<string | null> => {
+    const opts = {
+      properties: ['openFile'] as ['openFile'],
+      filters: [{ name: '图片', extensions: ['png', 'jpg', 'jpeg', 'webp'] }]
+    }
+    const win = getWindow()
+    const result = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  })
+
   // —— 自动更新 ——
   ipcMain.handle(IPC.updateCheck, async (): Promise<void> => {
     checkForUpdates(sendUpdate)

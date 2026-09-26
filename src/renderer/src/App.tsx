@@ -58,6 +58,12 @@ export default function App(): JSX.Element {
       sampler: string
       seed: number
       batchSize: number
+      mode?: 'txt2img' | 'img2img' | 'upscale'
+      initImage?: string
+      denoise?: number
+      upscaleFactor?: number
+      upscaler?: string
+      controlnet?: { enabled: boolean; model: string; strength: number; module: string }
     }) => {
       if (!config || busy) return
       setBusy(true)

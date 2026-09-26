@@ -60,11 +60,12 @@ ai-image-studio/
 │  │  ├─ selfTest.ts            # 运行级自检（验证生成管线）
 │  │  └─ providers/
 │  │     ├─ types.ts            # ImageProvider 接口
-│  │     ├─ http.ts             # 极简 HTTP 客户端
+│  │     ├─ http.ts             # 极简 HTTP 客户端（含带鉴权 POST）
 │  │     ├─ png.ts              # 最小 PNG 编码器（演示模式用）
 │  │     ├─ mock.ts             # 演示模式 Provider
-│  │     ├─ sdWebui.ts          # Stable Diffusion WebUI Provider
-│  │     ├─ comfyui.ts          # ComfyUI Provider
+│  │     ├─ sdWebui.ts          # Stable Diffusion WebUI Provider（txt2img/img2img/放大/ControlNet）
+│  │     ├─ comfyui.ts          # ComfyUI Provider（txt2img/img2img/放大）
+│  │     ├─ seedream.ts         # 豆包 Seedream 云端 Provider（txt2img/img2img）
 │  │     └─ index.ts            # Provider 注册表
 │  ├─ preload/index.ts          # contextBridge 安全桥接
 │  └─ renderer/src/
@@ -72,8 +73,7 @@ ai-image-studio/
 │     ├─ styles.css             # 深色主题样式
 │     └─ components/
 │        ├─ ParamsPanel.tsx     # 后端选择 + 提示词 + 参数表单
-│        ├─ Gallery.tsx         # 结果画廊 + 灯箱 + 历史
-│        └─ UpdateBanner.tsx    # 自动更新提示条 + 操作按钮
+│        └─ Gallery.tsx         # 结果画廊 + 灯箱 + 历史
 ```
 
 ## 4. 数据与持久化
@@ -104,9 +104,27 @@ ai-image-studio/
 - **出图**：`POST /prompt` 提交标准 txt2img 工作流 → 轮询 `GET /history/{prompt_id}` → `GET /view?filename=...` 下载图片
 - 基础模型名在配置里指定（`comfyModel`）
 
-### 5.3 演示模式（Mock）
+### 5.3 豆包 Seedream（云端）
+- **免显卡真实出图**：调用火山方舟 `POST https://ark.cn-beijing.volces.com/api/v3/images/generations`（Bearer 鉴权）。
+- **文生图**：`{ model, prompt, size, watermark:false, response_format:'b64_json', seed? }`
+- **图生图**：额外传 `image`（`data:image/png;base64,...`，读本地源图后 base64）。
+- 尺寸自动压到 API 接受区间（总像素 [1280x720, 4096x4096]，保持比例）；不同模型 ID（如 `doubao-seedream-5-0-lite-260128` / `doubao-seedream-4-5-251128`）可在界面切换。返回 `data[].b64_json` 写本地。
+- 需要方舟 API Key（界面填写，存本地配置）。
+
+### 5.4 演示模式（Mock）
 - 无外部依赖，依据 prompt 哈希 + seed 用内置 PNG 编码器生成确定性渐变图
 - 让无显卡环境也能完整体验「出图 → 保存 → 历史」全流程
+
+### 5.5 生成模式（各后端支持矩阵）
+
+| 模式 | SD WebUI | ComfyUI | Seedream | 演示 |
+|---|---|---|---|---|
+| 文生图 | ✅ | ✅ | ✅ | ✅ |
+| 图生图 | ✅ img2img（init_images + denoise） | ✅ 上传源图 + LoadImage + denoise | ✅ 传 image | 忽略源图 |
+| 放大 | ✅ extras-single-image（upscaler + factor） | ✅ LatentUpscale + 低重绘 | — | 忽略 |
+| ControlNet | ✅ alwayson_scripts（需扩展） | — | — | — |
+
+> 放大时后端按 `upscaleFactor` 计算目标宽高；图生图以 `denoise` 控制重绘强度（SD/Comfy 0.05-1，默认 0.6；放大默认 0.3）。
 
 ## 6. 安全边界
 
@@ -124,22 +142,23 @@ ai-image-studio/
 | PNG 编码器 | node 单测 + `file` 命令校验 | ✅ 合法 PNG |
 | 端到端生成 | xvfb 下运行 `selfTest.ts`：mock 出图→保存→写历史→进度事件 | ✅ 2 张图/历史 1 条 |
 | 应用启动 | xvfb 下 `electron out/main` 启动 | ✅ 正常引导无崩溃 |
+| 请求构造 | 桩 electron+fetch 跑 8 项断言（Seedream/SD/Comfy 三后端 × 文生图/图生图/放大/ControlNet） | ✅ 全部通过 |
+| 新版 UI | xvfb 启动并截图：4 后端按钮 + 文生图/图生图/放大模式 | ✅ 渲染正常 |
 | Linux 打包 | `electron-builder --linux AppImage` | ✅ 产出可用 AppImage |
 | Windows 打包 | `electron-builder --win nsis` | ⚠️ Linux 上需 wine 才能最终化；已提供 CI 原生构建 |
-| 自动更新 | 打包 dir 产物 + xvfb 启动；electron-updater 已打入 asar | ✅ 正常引导、不崩溃 |
 
 ## 8. 打包发布与自动更新
 
 - 已接入 **electron-builder**：`win.nsis` / `mac.dmg` / `linux.AppImage` 三目标，含应用图标、NSIS 安装向导配置。
 - 跨平台构建用仓库内的 **GitHub Actions 工作流**（`.github/workflows/build-installers.yml`），在 Windows/macOS/Linux 原生 runner 上自动构建并上传安装包；推 `v*` tag 触发。
 - 说明：macOS DMG 必须在 macOS 上构建；Windows NSIS 在 Linux 上依赖 wine（本沙箱无法持久安装），故用 CI 原生构建最可靠。
-- **自动更新**：主进程集成 `electron-updater`，启动后延迟检查 GitHub Releases 的 `latest*.yml` 更新清单；发现新版本后由用户在界面点「立即下载 / 重启安装」。CI 在推 tag 时用 `--publish always` 上传安装包与更新清单，供应用内自动更新读取。
+- **自动更新**：主进程集成 `electron-updater`，启动后延迟检查 GitHub Releases 的 `latest*.yml` 更新清单；发现新版本后由用户在界面点「立即下载 / 重启安装」。CI 在推 tag 时用 `--publish always` 上传安装包与更新清单，供应用内自动读取。
 - **代码签名**：已预留配置；在仓库 Secrets 填入 `CSC_LINK`/`CSC_KEY_PASSWORD`（Windows）与 `APPLE_ID`/`APPLE_APP_SPECIFIC_PASSWORD`/`APPLE_TEAM_ID`（macOS）后，CI 自动签名/公证。
 
 ## 9. 后续可扩展方向
 
-- 接入云端 API（豆包 Seedream / OpenAI DALL-E）作为 Provider
-- img2img / 放大 / ControlNet 参数支持
+- 云端多 Provider（OpenAI DALL-E / 通义万相 / Stable Diffusion API）接入
+- 本地 ControlNet 在 ComfyUI 侧的节点工作流（目前仅 SD WebUI）
 - 历史缩略图本地缓存与模糊搜索
 - 自动改版本号与签名自检
 - 进度条对接后端真实 step 进度

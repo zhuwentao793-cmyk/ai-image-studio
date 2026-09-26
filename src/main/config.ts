@@ -15,7 +15,10 @@ export function defaultConfig(): AppConfig {
     width: 512,
     height: 512,
     seed: -1,
-    batchSize: 1
+    batchSize: 1,
+    seedreamApiKey: '',
+    seedreamModel: 'doubao-seedream-5-0-lite-260128',
+    seedreamApiBase: 'https://ark.cn-beijing.volces.com/api/v3'
   }
 }
 

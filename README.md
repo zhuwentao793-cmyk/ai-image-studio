@@ -1,10 +1,12 @@
 # AI 图像工作室（AI Image Studio）
 
-本地部署的 **AI 图像生成桌面应用**（Windows / macOS），支持 **Stable Diffusion WebUI**、**ComfyUI** 与 **演示模式** 三种后端。图片、配置、历史全部保存在本地。
+本地/云端双路线 **AI 图像生成桌面应用**（Windows / macOS）：可接入本地 **Stable Diffusion WebUI / ComfyUI**（需显卡），也可用 **豆包 Seedream 云端 API** 免显卡真实出图；另含 **演示模式** 无依赖体验全流程。图片、配置、历史全部保存在本地。
 
 ## ✨ 功能
 
-- 🎛 三种生成后端可切换：Stable Diffusion WebUI / ComfyUI / 演示模式
+- 🎛 四种生成后端可切换：Stable Diffusion WebUI / ComfyUI / 豆包 Seedream（云端）/ 演示模式
+- 🖌 三种生成模式：**文生图 / 图生图 / 放大**（图生图带重绘强度、放大可调倍数与 upscaler）
+- 🎯 ControlNet 参数支持（本地 SD WebUI，需后端安装扩展）
 - 🖼 正向 / 负向提示词 + 完整参数（宽高、步数、CFG、采样器、seed、批量数量）
 - ⏱ 实时生成进度反馈
 - 🗂 生成结果画廊 + 灯箱预览 + 一键打开图片 / 输出目录
@@ -56,11 +58,18 @@ npm run dist:linux    # Linux   → release/*.AppImage
 ## 🧭 使用步骤
 
 1. 启动应用，默认处于「演示模式」，直接点 **生成图像** 即可看到效果。
-2. 若要接入真实后端：
+2. 选择生成后端：
+   - **演示模式**：无需任何后端。
    - **Stable Diffusion WebUI**：在 SD 目录用 `./webui.sh --api` 启动，然后在应用里选「Stable Diffusion WebUI」，API 地址填 `http://127.0.0.1:7860`，点「测试连接」确认。
-   - **ComfyUI**：启动 ComfyUI（默认 `http://127.0.0.1:8188`），在应用里选「ComfyUI」，填地址、确认基础模型名，测试连接。
-3. 填写正向 / 负向提示词与参数，点击「生成图像」。
-4. 结果出现在右侧画廊，点图放大，可打开图片或输出目录。
+   - **ComfyUI**：启动 ComfyUI（默认 `http://127.0.0.1:8188`），填地址、确认基础模型名，测试连接。
+   - **豆包 Seedream（云端）**：填「方舟 API Key」（申请：ark.volcengine.com），默认模型 `doubao-seedream-5-0-lite-260128`；免显卡即可真实出图。
+3. 选择**生成模式**：
+   - 文生图：直接填提示词出图。
+   - 图生图：选择源图 + 调重绘强度（denoise）。
+   - 放大：选择源图 + 放大倍数（SD 可再选 upscaler）。
+   - 本地 SD WebUI 可选 ControlNet（模型名 + 模块 + 强度）。
+4. 填写提示词与参数，点击「生成图像」。
+5. 结果出现在右侧画廊，点图放大，可打开图片或输出目录。
 
 ## 🔌 本地后端部署参考
 

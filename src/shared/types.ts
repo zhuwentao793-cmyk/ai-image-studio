@@ -1,6 +1,20 @@
 // 主进程与渲染进程共享的类型定义
 
-export type ProviderId = 'sdwebui' | 'comfyui' | 'mock'
+export type ProviderId = 'sdwebui' | 'comfyui' | 'mock' | 'seedream'
+
+/** 生成模式：文生图 / 图生图 / 放大 */
+export type GenMode = 'txt2img' | 'img2img' | 'upscale'
+
+export interface ControlNetCfg {
+  /** 是否启用 ControlNet（仅本地 SD WebUI 支持，需后端安装扩展） */
+  enabled: boolean
+  /** ControlNet 模型名，如 control_v11p_sd15_canny */
+  model: string
+  /** 控制强度 0-2 */
+  strength: number
+  /** 预处理器/模块，如 canny / pose / depth */
+  module: string
+}
 
 export interface AppConfig {
   /** 当前使用的生成后端 */
@@ -20,6 +34,13 @@ export interface AppConfig {
   height: number
   seed: number
   batchSize: number
+  /** —— 豆包 Seedream（云端） —— */
+  /** 方舟 API Key（ARK_API_KEY） */
+  seedreamApiKey: string
+  /** Seedream 模型 ID */
+  seedreamModel: string
+  /** 方舟 API 基址 */
+  seedreamApiBase: string
 }
 
 export interface GenerationRequest {
@@ -32,6 +53,18 @@ export interface GenerationRequest {
   sampler: string
   seed: number
   batchSize: number
+  /** 生成模式，默认文生图 */
+  mode?: GenMode
+  /** 图生图：本地源图路径 */
+  initImage?: string
+  /** 图生图：重绘强度 0-1 */
+  denoise?: number
+  /** 放大：放大倍数 */
+  upscaleFactor?: number
+  /** 放大：SD WebUI 使用的 upscaler 名 */
+  upscaler?: string
+  /** ControlNet 配置（SD WebUI） */
+  controlnet?: ControlNetCfg
 }
 
 export interface GenerationProgress {
@@ -111,6 +144,7 @@ export const IPC = {
   clearHistory: 'image:clear-history',
   openOutputDir: 'image:open-output-dir',
   pickDirectory: 'dialog:pick-directory',
+  pickImage: 'dialog:pick-image',
   openImage: 'image:open-file',
   progress: 'image:progress',
   defaultConfig: 'app:default-config',
