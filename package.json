@@ -1,6 +1,6 @@
 {
   "name": "ai-image-studio",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "本地 AI 图像生成桌面应用（Windows / macOS），支持 Stable Diffusion WebUI / ComfyUI / 演示模式",
   "main": "out/main/index.js",
   "author": "AI Studio",
