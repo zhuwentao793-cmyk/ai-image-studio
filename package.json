@@ -52,8 +52,7 @@
       "target": [
         "nsis"
       ],
-      "icon": "build/icon.png",
-      "signAndEditExecutable": false
+      "icon": "build/icon.png"
     },
     "nsis": {
       "oneClick": false,
@@ -62,6 +61,11 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "AI Image Studio"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "zhuwentao793-cmyk",
+      "repo": "ai-image-studio"
     },
     "mac": {
       "target": [
@@ -81,5 +85,8 @@
       "category": "Graphics",
       "synopsis": "Local AI image generation desktop app"
     }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   }
 }

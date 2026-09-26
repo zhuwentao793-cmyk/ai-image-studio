@@ -29,7 +29,7 @@
 │                                                 ▼        │
 │  ┌────────────────────────────────────────────────────┐  │
 │  │ Provider 抽象层（可插拔）                            │  │
-│  │  SdwebuiProvider  ComfyUiProvider  MockProvider    │  │
+│  │  SdWebuiProvider  ComfyUiProvider  MockProvider    │  │
 │  └────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────┘
         │ SD WebUI API                 │ ComfyUI API
@@ -52,8 +52,9 @@ ai-image-studio/
 ├─ src/
 │  ├─ shared/types.ts           # 主/渲染共享类型 + IPC 通道常量
 │  ├─ main/
-│  │  ├─ index.ts               # 窗口创建、应用生命周期
-│  │  ├─ ipc.ts                 # 所有 IPC handler 编排
+│  │  ├─ index.ts               # 窗口创建、应用生命周期、初始化更新
+│  │  ├─ ipc.ts                 # 所有 IPC handler 编排（含更新）
+│  │  ├─ updater.ts             # 自动更新（electron-updater）：检查/下载/安装
 │  │  ├─ config.ts              # 配置读写（userData/config.json）、输出目录
 │  │  ├─ store.ts               # 生成历史（userData/history.json，上限 200 条）
 │  │  ├─ selfTest.ts            # 运行级自检（验证生成管线）
@@ -71,7 +72,8 @@ ai-image-studio/
 │     ├─ styles.css             # 深色主题样式
 │     └─ components/
 │        ├─ ParamsPanel.tsx     # 后端选择 + 提示词 + 参数表单
-│        └─ Gallery.tsx         # 结果画廊 + 灯箱 + 历史
+│        ├─ Gallery.tsx         # 结果画廊 + 灯箱 + 历史
+│        └─ UpdateBanner.tsx    # 自动更新提示条 + 操作按钮
 ```
 
 ## 4. 数据与持久化
@@ -124,17 +126,20 @@ ai-image-studio/
 | 应用启动 | xvfb 下 `electron out/main` 启动 | ✅ 正常引导无崩溃 |
 | Linux 打包 | `electron-builder --linux AppImage` | ✅ 产出可用 AppImage |
 | Windows 打包 | `electron-builder --win nsis` | ⚠️ Linux 上需 wine 才能最终化；已提供 CI 原生构建 |
+| 自动更新 | 打包 dir 产物 + xvfb 启动；electron-updater 已打入 asar | ✅ 正常引导、不崩溃 |
 
-## 8. 打包发布
+## 8. 打包发布与自动更新
 
 - 已接入 **electron-builder**：`win.nsis` / `mac.dmg` / `linux.AppImage` 三目标，含应用图标、NSIS 安装向导配置。
 - 跨平台构建用仓库内的 **GitHub Actions 工作流**（`.github/workflows/build-installers.yml`），在 Windows/macOS/Linux 原生 runner 上自动构建并上传安装包；推 `v*` tag 触发。
 - 说明：macOS DMG 必须在 macOS 上构建；Windows NSIS 在 Linux 上依赖 wine（本沙箱无法持久安装），故用 CI 原生构建最可靠。
+- **自动更新**：主进程集成 `electron-updater`，启动后延迟检查 GitHub Releases 的 `latest*.yml` 更新清单；发现新版本后由用户在界面点「立即下载 / 重启安装」。CI 在推 tag 时用 `--publish always` 上传安装包与更新清单，供应用内自动更新读取。
+- **代码签名**：已预留配置；在仓库 Secrets 填入 `CSC_LINK`/`CSC_KEY_PASSWORD`（Windows）与 `APPLE_ID`/`APPLE_APP_SPECIFIC_PASSWORD`/`APPLE_TEAM_ID`（macOS）后，CI 自动签名/公证。
 
 ## 9. 后续可扩展方向
 
 - 接入云端 API（豆包 Seedream / OpenAI DALL-E）作为 Provider
 - img2img / 放大 / ControlNet 参数支持
 - 历史缩略图本地缓存与模糊搜索
-- 自动更新（electron-updater）与代码签名
+- 自动改版本号与签名自检
 - 进度条对接后端真实 step 进度

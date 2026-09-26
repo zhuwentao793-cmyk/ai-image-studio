@@ -85,6 +85,22 @@ export interface GenerateOutput {
   error?: string
 }
 
+export type UpdateState =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'downloading'
+  | 'downloaded'
+  | 'not-available'
+  | 'error'
+
+export interface UpdateStatus {
+  state: UpdateState
+  message: string
+  version?: string
+  progress?: number
+}
+
 // IPC 通道名常量，供 main / preload / renderer 一致引用
 export const IPC = {
   getConfig: 'app:get-config',
@@ -97,5 +113,9 @@ export const IPC = {
   pickDirectory: 'dialog:pick-directory',
   openImage: 'image:open-file',
   progress: 'image:progress',
-  defaultConfig: 'app:default-config'
+  defaultConfig: 'app:default-config',
+  updateCheck: 'update:check',
+  updateDownload: 'update:download',
+  updateInstall: 'update:install',
+  updateStatus: 'update:status'
 } as const

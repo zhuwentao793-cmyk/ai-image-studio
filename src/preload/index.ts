@@ -6,7 +6,8 @@ import {
   type GenerateOutput,
   type GenerationProgress,
   type GenerationRequest,
-  type HistoryEntry
+  type HistoryEntry,
+  type UpdateStatus
 } from '../shared/types'
 
 const api = {
@@ -29,6 +30,16 @@ const api = {
     const listener = (_e: IpcRendererEvent, p: GenerationProgress): void => cb(p)
     ipcRenderer.on(IPC.progress, listener)
     return () => ipcRenderer.removeListener(IPC.progress, listener)
+  },
+  // —— 自动更新 ——
+  updateCheck: (): Promise<void> => ipcRenderer.invoke(IPC.updateCheck),
+  updateDownload: (): Promise<{ ok: boolean; message?: string }> =>
+    ipcRenderer.invoke(IPC.updateDownload),
+  updateInstall: (): Promise<void> => ipcRenderer.invoke(IPC.updateInstall),
+  onUpdateStatus: (cb: (s: UpdateStatus) => void): (() => void) => {
+    const listener = (_e: IpcRendererEvent, s: UpdateStatus): void => cb(s)
+    ipcRenderer.on(IPC.updateStatus, listener)
+    return () => ipcRenderer.removeListener(IPC.updateStatus, listener)
   }
 }
 

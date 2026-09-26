@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { getProvider } from './providers'
 import { loadConfig, saveConfig, openInSystem } from './config'
 import { addHistory, clearHistory, getHistory } from './store'
+import { checkForUpdates, downloadUpdate, quitAndInstall } from './updater'
 import {
   IPC,
   type AppConfig,
@@ -10,13 +11,18 @@ import {
   type GenerateOutput,
   type GenerationProgress,
   type GenerationRequest,
-  type HistoryEntry
+  type HistoryEntry,
+  type UpdateStatus
 } from '../shared/types'
 
 /** 所有主进程能力封装成工具，避免在入口堆积 */
 export function registerIpc(getWindow: () => BrowserWindow | null): void {
   const sendProgress = (p: GenerationProgress): void => {
     getWindow()?.webContents.send(IPC.progress, p)
+  }
+
+  const sendUpdate = (s: UpdateStatus): void => {
+    getWindow()?.webContents.send(IPC.updateStatus, s)
   }
 
   ipcMain.handle(IPC.getConfig, (): AppConfig => loadConfig())
@@ -100,6 +106,17 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
       : await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
     if (result.canceled || result.filePaths.length === 0) return null
     return result.filePaths[0]
+  })
+
+  // —— 自动更新 ——
+  ipcMain.handle(IPC.updateCheck, async (): Promise<void> => {
+    checkForUpdates(sendUpdate)
+  })
+  ipcMain.handle(IPC.updateDownload, async (): Promise<{ ok: boolean; message?: string }> => {
+    return downloadUpdate(sendUpdate)
+  })
+  ipcMain.handle(IPC.updateInstall, async (): Promise<void> => {
+    quitAndInstall()
   })
 }
 

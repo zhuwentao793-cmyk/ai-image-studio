@@ -48,10 +48,11 @@ git push origin v0.1.1
 
 CI 自动完成：
 1. 在 **Windows / macOS / Linux 三台原生 runner** 上各自构建安装包；
-2. 聚合三份安装包；
-3. 自动生成变更日志；
-4. 创建 **GitHub Release** 并把 `.exe / .dmg / .AppImage` 附加到 Release 的 Assets；
-5. 你在 Release 页面下载分发。
+2. 通过 `electron-builder --publish always` 把安装包 + **自动更新清单**（`latest.yml` / `latest-mac.yml` / `latest-linux.yml`）上传到 **GitHub Release**；
+3. 自动生成变更日志并正式发布该 Release；
+4. 已安装应用下次启动会自动检测到新版本，在界面点「立即下载 / 重启安装」即可完成升级（无需用户手动下载）。
+
+> **自动更新说明**：应用内置 electron-updater，从 GitHub Releases 读取更新清单。发布前确保版本号**严格递增**（升序），否则会提示无更新。
 
 > 推标签是触发点。若想先跑通不发布，可在 Actions 页手动运行工作流，只产出 artifacts 不建 Release。
 
@@ -79,8 +80,25 @@ npm run dist:linux    # Linux 本机   → release/*.AppImage
 - [ ] Release 页面能看到三个安装包 Assets
 - [ ] 下载后安装/运行一次（特别是新平台首测）
 
-## 8. 可选增强（后续可接）
+## 8. 代码签名（可选但推荐）
 
-- **代码签名**：Windows 用证书（signtool/electron-builder 自动），macOS 做 notarization（公证），可消除「未知发布者」提示。
-- **自动更新**：接入 `electron-updater`，配合 GitHub Releases 实现应用内一键升级。
+未签名不影响自动更新，但 Windows 安装时会有「未知发布者 / SmartScreen」提示，macOS 用户需右键打开。接入签名后体验更专业。
+
+**Windows 代码签名**
+1. 购买/申请 Authenticode 证书（.pfx），
+2. 在仓库 **Settings → Secrets and variables → Actions** 添加：
+   - `CSC_LINK`：证书的 base64 或下载地址
+   - `CSC_KEY_PASSWORD`：证书密码
+3. electron-builder 在 Windows runner 上检测到这些密钥会自动签名（已去掉原先的 `signAndEditExecutable:false` 禁用项）。
+
+**macOS 签名 + 公证（Notarization）**
+1. 需要 Apple Developer ID 证书；
+2. 添加 Secrets：`APPLE_ID`、`APPLE_APP_SPECIFIC_PASSWORD`、`APPLE_TEAM_ID`；
+3. electron-builder 会自动签名 DMG，并做 notarization（公证），消除 macOS 的「无法验证开发者」警告。
+
+> 在设置好 Secrets 后重新打 tag 发布即可让新版本带上签名。
+
+## 9. 后续可增强
+
 - **自动改版本号**：用 CI 读 tag 反写 `package.json`，减少手工步骤。
+- **签名校验测试**：CI 中增加对安装包签名的自检。

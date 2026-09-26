@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AppConfig, GenerationProgress, HistoryEntry } from '@shared/types'
+import type { AppConfig, GenerationProgress, HistoryEntry, UpdateStatus } from '@shared/types'
 import { ParamsPanel } from './components/ParamsPanel'
 import { Gallery } from './components/Gallery'
+import { UpdateBanner } from './components/UpdateBanner'
 
 export default function App(): JSX.Element {
   const [config, setConfig] = useState<AppConfig | null>(null)
@@ -10,17 +11,21 @@ export default function App(): JSX.Element {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [connection, setConnection] = useState<{ ok: boolean; message: string } | null>(null)
+  const [update, setUpdate] = useState<UpdateStatus | null>(null)
 
   const progressUnsub = useRef<(() => void) | null>(null)
+  const updateUnsub = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     let mounted = true
     window.api.getConfig().then((cfg) => mounted && setConfig(cfg))
     window.api.history().then((h) => mounted && setHistory(h))
     progressUnsub.current = window.api.onProgress((p) => setProgress(p))
+    updateUnsub.current = window.api.onUpdateStatus((s) => setUpdate(s))
     return () => {
       mounted = false
       progressUnsub.current?.()
+      updateUnsub.current?.()
     }
   }, [])
 
@@ -37,6 +42,9 @@ export default function App(): JSX.Element {
     if (!config) return
     const res = await window.api.testConnection(config)
     setConnection({ ok: res.ok, message: res.message })
+    if (res.models && res.models.length && config.provider === 'comfyui') {
+      // 若 ComfyUI 返回了模型列表且当前模型不在其中，可让用户选择
+    }
   }, [config])
 
   const handleGenerate = useCallback(
@@ -73,6 +81,12 @@ export default function App(): JSX.Element {
     setHistory(await window.api.clearHistory())
   }, [])
 
+  const handleUpdateAction = useCallback(async (action: 'check' | 'download' | 'install') => {
+    if (action === 'check') await window.api.updateCheck()
+    else if (action === 'download') await window.api.updateDownload()
+    else await window.api.updateInstall()
+  }, [])
+
   if (!config) {
     return <div className="loading">加载中…</div>
   }
@@ -91,6 +105,8 @@ export default function App(): JSX.Element {
           {busy && <span className="busy">生成中…</span>}
         </div>
       </header>
+
+      {update && <UpdateBanner status={update} onAction={handleUpdateAction} />}
 
       <div className="app-body">
         <aside className="sidebar">

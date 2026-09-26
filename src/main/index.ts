@@ -2,6 +2,8 @@ import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'node:path'
 import { registerIpc } from './ipc'
 import { ensureOutputDir } from './config'
+import { initAutoUpdater } from './updater'
+import { IPC } from '../shared/types'
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -48,6 +50,11 @@ app.whenReady().then(() => {
 
   const win = createWindow()
   registerIpc(() => BrowserWindow.getAllWindows()[0] ?? win)
+
+  // 初始化自动更新（生产环境启动后延迟检查）
+  initAutoUpdater(() => BrowserWindow.getAllWindows()[0] ?? win, (s) => {
+    win.webContents.send(IPC.updateStatus, s)
+  })
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
